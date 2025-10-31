@@ -1,0 +1,8 @@
+/.vs_code  // Ignore VS Code settings folder
+/node_modules // Ignore node modules folder
+./dist     // Ignore build output folder
+
+*.env
+.env // Ignore environment variable files
+.env.*
+

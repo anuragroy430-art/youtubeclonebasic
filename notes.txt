@@ -3,8 +3,133 @@ we will push to git first
 git init 
 git add .
 git commit -m "initial commit"
-git remote add origin <your-repo-url>
+git branch -M main
+git remote add origin <your-repo-url> // get your repo url from github
 git push -u origin main
+
+after that u can just push your changes using
+git add .
+git commit -m "your message"
+git push
 
 
 second we will upload pics on this server only before cloudinary so if cloudinary connection fails we still have pics on our server
+so we will create a folder named public in our root directory and inside that create another folder named temp inside that we will create .gitkeep file so that git will track this empty folder
+then we will create .gitignore file in root directory and inside that we will write ( go to gitignore.io to generate .gitignore file for nodejs projects) // mrkandreev.name also works for generating .gitignore files
+
+then we will create .env file in root directory 
+what is .env file ?
+it is a file where we will store our environment variables like database url , cloudinary api keys etc
+
+then we will make a src folder in root directory 
+inside src folder we will create app.js file
+cd src 
+touch app.js constants.js index.js
+
+then we will create config folder inside src folder
+
+js has two types of imports
+1. commonjs
+2. es6 modules
+we will use es6 modules
+so in package.json file we will add "type": "module", just below 
+  "main": "index.js",
+
+whenever we change anything in our code we have to restart the server again and again
+to avoid that we will use nodemon
+npm install --save-dev nodemon // --save-dev means it will be installed only in development environment not in production environment
+then in package.json file inside scripts we will change test script to
+"dev": "nodemon src/index.js" // now to start the server we will run npm run dev command
+
+also es6 modules and .env has difficulty in working together , we have to use require to use dotenv in es6 modules
+
+then cd src , mkdir controllers middlewares db models routes services utils
+// controllers - to handle the logic 
+// middlewares - to handle the middlewares like error handling , auth etc ( middlewares are functions that have access to request and response objects)
+// db - to handle database connection ( mongoose connection or posgres connection )
+// models - to handle database models ( mongoose models or sequelize models )
+// routes - to handle routes ( express routes )
+// services - to handle external services like cloudinary , nodemailer etc
+// utils - to handle utility functions like generating jwt token , hashing password , file uploads , mailing  etc
+
+install prettier for code formatting 
+npm install --save-dev prettier
+create .prettierrc file in root directory and add your preferred prettier configurations
+create .prettierignore file in root directory to ignore files and folders from prettier formatting
+
+
+now we will connect mongodb database using mongoose
+go to mongodb atlas and create a free cluster
+create a database named youtubeclone
+give access to all ip addresses in network access ( in professional projects give access to only your server ip address for security reasons)
+create a database user and password ( note them down )
+then get your connection string from connect button in clusters dashboard click 
+on compass and copy the connection string
+replace <password> with your database user password
+
+
+then in .env file add
+MONGODB_URL=your-mongodb-connection-string
+PORT=5000
+then in constants.js file add
+export const DB_NAME = "youtubeclone" // your database name
+
+theres two ways to connect to mongodb using mongoose
+1. using mongoose.connect() method directly in index.js file - pros : easy to implement , cons : clutters index.js file
+2. creating a separate file in db folder named mongoose.js and exporting the connection function from there and importing it in index.js file
+  pros : cleaner code , cons : slightly complex for beginners
+we will use second method for better code structure
+
+so we need packages like express , mongoose , dotenv  etc
+npm install express mongoose dotenv 
+
+the next importat thing is mongoose 
+whenever we talk to mongodb error can occur due to network issues or database issues so wrap mongoose connection in try catch block to handle errors properly
+or we can use promise .then().catch() method to handle errors
+also db connection takes time so we have to make our function async and use await keyword before mongoose.connect() method
+what is async await ?
+async await is a way to handle asynchronous code in javascript
+asynchronous code is code that runs in the background and does not block the main thread
+
+
+in index.js file we will import mongoose  and DB_NAME from constants.js 
+import mongoose from "mongoose";
+import { DB_NAME } from "./constants.js";
+
+then we will do a IIFE ( immediately invoked function expression) to connect to database
+wrapped in try catch block to handle errors
+
+then we import express and create an express app
+and we listen to error events on mongoose connection to log any connection errors
+app.on("error", (error) => {
+  console.error("MongoDB connection error:", error);
+}); // what does this do ? it listens to error events on mongoose connection and logs the error message
+
+but this approach clutters index.js file so we will create a separate file in db folder named mongoose.js and export the connection function from there and import it in index.js file
+
+then in index.js file we will import connectDB function from db/mongoose.js file and call it inside an IIFE to connect to database
+
+another thing is we will use dotenv to load environment variables from .env file
+we can use require to import dotenv but we are using es6 modules so we will use import statement , which is not supported by dotenv by default
+so to use import statement we will do
+import dotenv from "dotenv";
+dotenv.config({
+    path : ".env"
+}); // this will load environment variables from .env file
+then in package.json under "dev" script we will add
+"dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
+
+after that if u get any errors read the errors 
+one error can be importing problem of connectDB function from mongoose.js file
+in the path of import always write last file name with extension like .js
+
+next problem is constants.js file not found error 
+make sure the path is correct ../constants.js  not ./constants.js as this will look inside src/db/constants.js
+after this db is connected successfully message should appear in console
+
+now lets try to fail the connection on purpose to see if error handling works
+change the passowrd in MONGODB_URL in .env file to wrong password and run the server
+you should see the error message in console
+now change the password back to correct password and run the server again
+now we should see db connected successfully message in console
+
