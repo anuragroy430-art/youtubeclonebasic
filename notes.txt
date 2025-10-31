@@ -1,0 +1,10 @@
+first npm init -y
+we will push to git first 
+git init 
+git add .
+git commit -m "initial commit"
+git remote add origin <your-repo-url>
+git push -u origin main
+
+
+second we will upload pics on this server only before cloudinary so if cloudinary connection fails we still have pics on our server
