@@ -220,6 +220,79 @@ another thing is we will check any error goes through our error handling apiErro
 
 
 
+ok now next stage is creating models - at first we will create user model and then video model  
+so create user.model.js file in models folder
+then create video.model.js file in models folder
 
+managing watchhistory  will be quite complex , so we will learn about mongoose - aggregation pipelines and how to use them for complex queries
+npm install mongoose-aggregate-paginate-v2 (for pagination of aggregation results)
+what is aggregation pipeline ?
+aggregation pipeline is a way to process data in mongodb
+it is a series of stages that process data
+each stage takes input from previous stage and produces output for next stage
+stages are defined using an array of objects
+each object represents a stage // learn more about it later
+
+npm install mongoose-aggregate-paginate-v2
+now import this package in video.model.js file and add pagination plugin to video schema
+import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
+
+mongoose allows a lot of methods , middlewares and plugins to work with schemas and models
+like pre , post middlewares , statics methods , instance methods , plugins etc
+we can add our own custom methods and middlewares to schemas and models
+then in video.model.js file
+videoSchema.plugin(mongooseAggregatePaginate); // this will add pagination methods to video model
+
+next we will learn about bycrypt for hashing passwords
+ bycrypt and bcryptjs 
+ diff between hashing and encryption ?
+ hashing is a one way function
+ encryption is a two way function
+ so we will use bcryptjs for hashing passwords
+ npm install bcrypt
+
+ we will also use jsonwebtoken for generating jwt tokens for authentication
+ npm install jsonwebtoken
+ what is jwt ? 
+ jwt is a way to securely transmit information between parties as a json object
+ jwt is used for authentication and authorization
+ jwt consists of three parts
+ 1. header
+ 2. payload
+ 3. signature
+ these three parts are separated by dots (.)
+ header contains the type of token and signing algorithm
+ payload contains the claims ( data )
+ signature is used to verify the token and ensure that it has not been tampered with
+
+now in user.model.js file
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+direct encryption is not possible 
+so we will take help of mongoose hooks to hash password before saving to database
+so we will use pre save hook to hash password before saving to database
+
+after hashing the password we will create a method to compare password during login
+as user will provide plain text password during login so we will create a method named isPasswordMatch to compare plain text password with hashed password in database
+we have custom methods in mongoose models
+
+now we come to jwt 
+jwt is a bearer token , it means it should be sent in authorization header as Bearer token
+acts as a key to access protected resources on server
+
+now in .env file add
+access_token_secret= your-secret-key // use a strong secret key for production
+USE online jwt generator to generate a strong secret key
+also add expiry time for access token
+access_token_expiry=1d // 1d means 1 day , can be in hours , minutes etc  
+we will also create refresh tokens
+so refresh_token_secret= your-refresh-secret-key
+refresh_token_expiry=7d // 7 days
+
+
+then in user.model.js file
+we will create a method named generateAuthTokens to generate access token and refresh token for user
+we will use jwt.sign() method to generate tokens
+we will pass user id as payload and secret key and expiry time from .env file 
 
 
