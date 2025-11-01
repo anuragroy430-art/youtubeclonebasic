@@ -28,6 +28,19 @@ const app = express();
 */
 
 import connectToDatabase from "./db/mongoose.js";
+import app from "./app.js";
 
-connectToDatabase();
+connectToDatabase()
+.then(() => {
+    app.on("error", (error) => {
+        console.error("Error in Express app", error);
+        throw error;
+    });
+    app.listen(process.env.PORT || 8000, () => {
+        console.log(`Server is running on port ${process.env.PORT || 8000}`);
+    });
+})
+.catch((err) => {
+    console.error("Failed to connect to the database", err);
+});
  

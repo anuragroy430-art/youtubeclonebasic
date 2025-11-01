@@ -133,3 +133,93 @@ you should see the error message in console
 now change the password back to correct password and run the server again
 now we should see db connected successfully message in console
 
+
+
+now in app.js 
+import express from "express";
+const app = express();
+export default app;
+then in index.js as db connection was async it returns a promise so we will wait for db connection to be successful before starting the server
+so after connectDB() call we will write .then and .catch to handle success and failure of db connection
+before that we can also write app.on("error") method to listen to any mongoose connection errors and log them
+then inside .then() method we will start the server using app.listen() method
+
+then go to app.js file 
+to make a express app , go to its documentation and see the api reference ( mostly 5x versions are used now )
+we will be in either request or response cycle mostly 
+inside request we have many properties like req.params , req.query , req.body , req.headers , req.cookies , req.baseurl etc
+among these req.params , req.query and req.body are most used
+req.params - to get url params like /user/:id
+req.query - to get query params like /user?id=123
+req.body - to get request body data like in post requests , data can be in json format or form data format
+
+req.cookies - to get cookies from request headers
+for cookies we need to install cookie-parser middleware
+npm install cookie-parser
+
+we will also install cors middleware to handle cross origin requests
+npm install cors
+
+then in app.js file
+import cors from "cors";
+import cookieParser from "cookie-parser";
+
+we will use these middlewares using app.use() method 
+app.use(cors( {} )); // inside cors we can pass options like origin , methods , credentials etc to configure cors as per our requirements
+also set cors_origin in .env file to specify which origins are allowed to access our server
+
+data can be sent in different formats like json , forms from body , url data , direct form etc
+so we need to configure express
+and its directly done by express itself
+
+app.use(express.json({limit : '10mb'})); // to parse json data from request body
+earlier we used body-parser package for this but now express has inbuilt body-parser
+
+( we will use multer for form data parsing later when we implement file uploads )
+
+cookie parser middleware helps acesss and set  cookies for user browser from my server
+
+
+q) what is middleware in express ?
+at first suppose a client hits a url suppose /instagram 
+so this request goes to server (req,res cycle) so in the response we write 
+something like res.send("welcome to instagram") 
+request like this comes a lot of times to server and we want to process this request before sending response
+thats where middleware comes in
+middleware is a function that has access to request and response objects
+it checks whether u r capable of accessing the resource or not
+like authentication middleware checks whether u r logged in or not before accessing a resource
+so middlewares are functions that run before the final request handler
+
+another thing is we just dont have ( req , res ) in middlewares we also have (err, req , res , next)
+this is error handling middleware
+so whenever an error occurs in any middleware or route handler we can pass the error to next()
+next is like a flag that tells express to go to the next middleware or route handler
+so if we pass an error to next() it will go to the error handling middleware
+
+
+next important thing is talking to database
+we will talk a lot to database so insteading of writing database code in route handlers we will create separate files in services folder or utility class  to handle database operations
+so create a file asynchandler.js in utils folder
+this file will export a function that will take a async function as parameter and return a function that will handle errors using try catch block
+this way we can avoid writing try catch block in every route
+
+another thing we will do is standarize our api responses and error responses
+so we will create a file apiError.js in utils folder
+this file will export a class ApiError that will extend the built in Error class
+this class will have a constructor that will take message and statusCode as parameters
+
+we will also create a file apiResponse.js in utils folder
+like we have built in error class in node , we dont have a built in response class
+so we will create a class ApiResponse
+that will standardize our api responses
+this class will have a constructor that will take message , data and statusCode as parameters
+
+
+another thing is we will check any error goes through our error handling apiError.js only 
+
+
+
+
+
+
