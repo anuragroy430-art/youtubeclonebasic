@@ -296,3 +296,62 @@ we will use jwt.sign() method to generate tokens
 we will pass user id as payload and secret key and expiry time from .env file 
 
 
+next topic is file uploads using multer , 
+fileupload is not done in our own server in production
+we use cloudinary or aws s3 for file uploads
+so we will use cloudinary for file uploads
+npm install cloudinary
+npm install multer
+
+our strategy will be
+we will upload files to cloudinary through multer only 
+we will take files from client using multer middleware
+and store it temporarily in our server public/temp folder
+then we will upload these files to cloudinary using cloudinary sdk
+then we will delete these files from our server to save space
+
+we will create a file cloudinary.js in utils folder to handle cloudinary configuration and upload functions
+then in cloudinary.js file
+import { v2 as cloudinary } from "cloudinary";
+ import fs from "fs"; // to read and delete files from server fs - file system module , part of nodejs
+ fsPromises.unlink(filePath); // to delete file from server
+
+cloudinary.config({
+    cloud_name : process.env.CLOUDINARY_CLOUD_NAME,
+    api_key : process.env.CLOUDINARY_API_KEY,
+    api_secret : process.env.CLOUDINARY_API_SECRET
+}); // configure cloudinary with credentials from .env file 
+
+then we will create functions to upload images and videos to cloudinary
+cloudinary.v2.uploader
+.upload("dog.mp4", {
+  resource_type: "video", 
+  public_id: "my_dog",
+  overwrite: true, 
+  notification_url: "https://mysite.example.com/notify_endpoint"})
+.then(result=>console.log(result)); // this is how to upload video to cloudinary
+similarly for images we can use resource_type : "image"
+
+// this above code is to upload directly from server
+// but we will upload from local file path using multer
+
+now we will create multer middleware to take files from client and store them temporarily 
+why are we using middleware for file uploads ?
+because we can inject this middleware in any route where we want to upload files
+so create a file upload.middleware.js in middlewares folder
+import multer from "multer";
+read documentation of multer
+for uploading we write 
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'public/temp/')
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+        cb(null, uniqueSuffix + '-' + file.originalname)
+    }
+})
+
+till now we have just done project setup
+
+
