@@ -15,4 +15,14 @@ app.use(express.static('public')); // Serving static files from the 'public' dir
 app.use(cookieParser()); // Middleware to parse cookies from incoming requests
 
 
+//routes import 
+import userRoutes from './routes/user.routes.js';
+//route declaration
+app.use('/api/v1/users', userRoutes); // when user hits /users route , userRoutes will handle it , this is middleware routing
+//this gets prefixed to all routes inside userRoutes
+
+
+
+
+
 export default app;

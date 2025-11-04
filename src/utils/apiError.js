@@ -20,7 +20,7 @@ class apiError extends Error {
 
     }
 }
-export default apiError;
+export {apiError};
 
 // what does this file do ?
 //this file exports a custom error class that extends the built-in Error class. It adds additional properties like statusCode, data, error, and stack to the error object. This allows for more structured error handling and standardized error responses in the API.

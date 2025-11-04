@@ -11,7 +11,7 @@ const storage = multer.diskStorage({  // configure multer to save files to local
 })
 const upload = multer({ storage: storage });
 
-export default upload;
+export { upload };
 
 // what does this file do ?
 // this file configures multer middleware to handle file uploads in an Express.js application. It sets up storage options to save uploaded files to a temporary directory on the server's local storage ('./public/temp/') with their original filenames. The configured multer instance is then exported for use in other parts of the application where file uploads are needed.

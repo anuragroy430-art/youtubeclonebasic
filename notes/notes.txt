@@ -354,4 +354,245 @@ const storage = multer.diskStorage({
 
 till now we have just done project setup
 
+now we will learn about http crash course 
+
+When you build backend controllers (in Node, Java, Spring Boot, Django, etc.), you’re essentially writing code that:
+Receives HTTP requests
+Processes them
+Returns HTTP responses
+So if you don’t understand HTTP clearly, controllers will feel like a “black box”.
+hyper text transfer protocol (http)
+
+it is a protocol used for communication between client and server
+http vs https 
+http is not secure , https is secure
+https uses ssl/tls to encrypt data between client and server
+http sends data in plain text
+
+what are http headers ?
+these are meta data - key value pairs sent in request and response
+like content-type , authorization , cookies , user-agent etc
+what do these headers do ?
+few examples are used in caching , authentication , session cookies , (manage state-guest , logged in )etc
+categories of headers
+1. request headers - sent by client to server
+2. response headers - sent by server to client
+3. representation headers - tells data is in which encoding format like json , xml , html etc , which compression format like gzip , deflate etc
+4.payload headers - tells size of data being sent in request or response
+5. security headers - used to secure data like csp , hsts , x-frame-options etc
+
+most common headers
+1. accept - tells server which content types client can handle - application/json , text/html etc
+2. user-agent - tells server about client device and browser , from which application the request is sent , which browser engine is used etc
+3. authorization - used for authentication , contains credentials like bearer token , basic auth etc
+4. content-type - tells server about type of data being sent in request body - application/json , multipart/form-data etc
+5. cookie - contains cookies sent by client to server , used for session management
+6. cache -control - used to control caching of data , like no-cache , no-store , max-age etc
+
+production grade headers  
+cors headers
+1.acess-control-allow-origin
+2.acess-control-allow-methods 
+3.acess-control-allow-credentials
+security headers
+
+headers do not automatically do anything , they are like meta data - like if this is allowed by server then do this , we have to implement the logic in server to handle these headers
+
+http methods - basic set of operations that can be performed on a resource
+1. GET - to fetch data from server
+2. POST - to create new resource on server (add new data)
+3. PUT - to update existing resource on server (replaces entire resource)
+4. DELETE - to delete resource from server
+5. PATCH - to partially update existing resource on server (only updates specified fields)
+6. OPTIONS - to get supported http methods for a resource
+7. HEAD - to get only headers of a resource without body
+8. TRACE - to trace the path of a request to a resource
+
+http status codes - three digit codes sent in response to indicate status of request
+1xx - informational 
+2xx - success (like 200 ok , 201 created etc)
+3xx - redirection (like 301 moved permanently , 302 found etc)
+4xx - client error (like 404 not found , 401 unauthorized etc)
+5xx - server error ( like 500 internal server error , 503 service unavailable etc)
+most common status codes
+
+100-continue,102-processing,200-ok,201-created,202-accepted,204-no-content,301-moved-permanently,302-found,304-not-modified,400-bad-request,401-unauthorized,403-forbidden,404-not-found,409-conflict,500-internal-server-error,502-bad-gateway,503-service-unavailable
+
+NOW JUST LOGIC , ALL SETUP DONE
+
+now we will register a user , how to write controller for that ?
+create a file user.controller.js in controllers folder
+import {asyncHandler} from "../utils/asyncHandler.js";
+const registerUser = asyncHandler(async (req, res) => {
+   // get user data from req.body
+   // validate user data
+   // check if user already exists
+   // hash password
+   // create user in database
+   // generate auth tokens
+   // send response with user data and tokens
+}); but for now we will just send a response with message user registered successfully
+res.status(201).json({
+    message : "User registered successfully"
+});
+
+next step is routes 
+what is route ?
+route is a path that maps to a controller function
+it means when a client hits a url like /api/users/register with a http method like POST
+then this request is handled by a controller function like registerUser
+
+so create a file user.routes.js in routes folder
+
+
+
+we have exported so many things from different files
+now where will we import all these things and use them ?
+we will do in app.js file , generally middlewares and routes are imported and used in app.js file
+
+so in app.js file
+
+// wherever our app is running (url) suppose local host we will just call the method of register user but no we dont do this 
+//routes declaration
+earlier we were writing app.get and it was working bcz routes controllers were in app.js file itself
+// now we have separated routes and controllers in different files so we will use app.use() method
+import userRoutes from "./routes/user.routes.js";
+app.use('/users', userRoutes); // this means all routes in userRoutes will be prefixed with /users
+so whenever client hits /users url it will go to userRoutes file 
+from there it will go to respective controller functions
+
+so in routes files we will write
+const router = Router();
+router.route("/register").post( registerUser ); // POST request to /users/register will be handled by registerUser controller
+export default router; 
+
+even if we write a login route in user.routes.js file
+router.route("/login").post( loginUser ); // POST request to /users/login will be handled by loginUser controller
+no need to write app.use() again in app.js file as we have already prefixed /users to all routes in userRoutes
+
+another good practise is instead of /users we write /api/v1/users
+this way we can version our api and in future if we want to make breaking changes we can
+create a new version of api like /api/v2/users and keep both versions running simultaneously
+
+ONE ERROR ISSUE CAN COME 
+import and export issues
+if we export default then we have to import without curly braces {}
+if we export named export then we have to import with curly braces {}
+
+
+ok so now how will we test our register user controller ?
+we can use thunder client extension in vscode or postman application
+postman is industry standard for api testing
+(download and install postman application from postman website)
+postman does what ? - it allows us to send http requests to our server and get responses
+write a post request to http://localhost:8000/api/v1/users/register
+now in collection if we write this and click send we will get error
+CANNOT GET error, why ?
+bcz we are using get here but our route is post
+so change it to post and click send
+now we should get response with message user registered successfully
+
+now instead of just sending message we will implement the logic to register user properly
+SO LOGIC BUILDING STARTS FROM HERE
+we will breakdown the logic into steps
+1. get user details from frontend 
+2. validation of user details (email format , password strength etc , isempty fields etc)
+3.check if user already exists in database (by email and username)
+4.check file uploads (profile pic etc) that is avatar and cover image in our model
+5.upload images to cloudinary using cloudinary sdk (check for avatar cz that is required field)
+6.create user object ( nosql database )  and create entry in database(db calls)
+7.remove passowrd and refresh token from response
+8.check if user is created successfully (if not send error response)
+
+1. get user details from frontend
+destructure user details from req.body
+const { username , email , password , fullname } = req.body;
+now check postman for testing by doing console.log
+write the local host url in postman and in body select raw and json format
+then send data like 
+{
+    "username" : "john_doe",
+    "email" : "john@example.com",}
+now we will see the console log in terminal
+
+now we have handeled only data from req.body
+next we will handle file uploads using multer middleware cz we cant handle file uploads using req.body
+so in user.routes.js file
+import { upload } from "../middlewares/upload.middleware.js";
+now how to use this upload middleware ? 
+we will use it in route handler
+we see in /register route if anyone hits - registerUser method is called
+so before calling registerUser method we will call upload middleware
+so we will write upload.single('avatar') for single file upload
+but we have two files to upload avatar and coverImage
+so we will use upload.fields() method for multiple file uploads
+upload.fields takes an array of objects as parameter
+
+so now we can take files 
+
+2. validation of user details (email format , password strength etc , isempty fields etc)
+we can use joi or yup for validation but now we will do simple validation using if else statements
+
+so import ApiError from "../utils/apiError.js";
+and check if ( fullname && email && username && password ) {    
+  throw new ApiError("All fields are required", 400); // 400 bad request
+}
+
+3.check if user already exists in database (by email and username)
+
+in user.model.js , we also have exported the user model , this export can directly talk to database
+so we will import User model in user.controller.js file
+import {User} from "../models/user.model.js"; {} bcz we have used named export in user.model.js file
+then we will check if user already exists in database by email and username
+
+User.findOne({ $or : [{username} , {email}]}) // this will check if user with given username or email already exists in database
+.findone() method - finds the first user that matches the query
+User.findOne({ $or : [{username} , {email}]})
+$or is a mongo operator that checks if any of the conditions are true ($and , $not etc are other operators)
+
+4.check file uploads (profile pic etc) that is avatar and cover image in our model
+
+just like there is req.body for data there is req.files for files uploaded using multer middleware 
+middleware adds a files property to req object 
+req.files?. we are using optional chaining operator ?. to avoid error if files property is undefined
+req.files?.avatar[0].path - this will give the path of uploaded avatar file ,, [0]  is the first property and theres a path property in that object
+
+now check if avatar file is uploaded as it is required field in our model
+
+5.upload images to cloudinary using cloudinary sdk (check for avatar cz that is required field)
+
+we have already created cloudinary.js file in utils folder to handle cloudinary configuration and upload functions
+so we will import {uploadToCloudinary} from "../utils/cloudinary.js";
+then we will upload avatar and coverImage to cloudinary using uploadToCloudinary function
+
+6. create user object ( nosql database )  and create entry in database(db calls)
+
+user.create() method to create user in database
+//diff between .url and .secure_url
+url - http url
+secure_url - https url 
+
+7. remove passowrd and refresh token from response
+
+const createdUser = await User.findById(user._id).select("-password -refreshToken");
+this will remove password and refreshToken from response
+.select() method is used to select specific fields from the document
+also this was used to check if user is created successfully or not 
+
+8.check if user is created successfully (if not send error response)
+if(!createdUser) {
+    throw new ApiError("User registration failed", 500); // 500 internal server error
+}
+
+9. if no errors send success response
+we already have a structure for api responses in apiResponse.js file
+so we will import ApiResponse from "../utils/apiResponse.js";
+then send response using ApiResponse class
+
+
+
+  
+
+
+
 
