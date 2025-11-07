@@ -201,5 +201,120 @@ const refreshAuthTokens = asyncHandler (async (req, res, next) => {
 
 });
 
-export {registerUser, loginUser, logoutUser , refreshAuthTokens};
+const changeCurrentPassword = asyncHandler (async (req, res, next) => {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+        throw new apiError(400, "Current password and new password are required");
+    }
+    const user = await User.findById(req.user?._id);
+    if (!user) {
+        throw new apiError(404, "User not found");
+    }
+    const isMatch = await user.isPasswordMatch(currentPassword);
+    if (!isMatch) {
+        throw new apiError(401, "Current password is incorrect");
+    }
+    user.password = newPassword;
+    await user.save({ validateBeforeSave: false }); // disable validation before saving
+    return res.status(200).json(new apiResponse(200, null, "Password changed successfully"));
+}); 
+
+const getCurrentUserProfile = asyncHandler (async (req, res, next) => { 
+   return res.status(200).json(
+    new apiResponse(200, req.user, "User profile fetched successfully")
+   );
+}); 
+
+const updateUserProfile = asyncHandler (async (req, res, next) => {
+    const { fullName, username } = req.body;
+    if (!fullName || !username) {
+        throw new apiError(400, "Name and username are required");
+    }
+   const user = await User.findByIdAndUpdate(
+    req.user._id,
+    {  $set : { 
+            fullName,
+            username
+        } 
+    },
+    { new : true } // return the updated document
+   ).select("-password -refreshTokens"); // exclude password and refreshTokens from the response
+
+   if(!user){
+    throw new apiError(500,"Error updating user profile");
+   }
+    return res.status(200).json(new apiResponse(200, user, "User profile updated successfully"));
+});
+
+const updateUserAvatar = asyncHandler (async (req, res, next) => {
+
+    const avatarLocalPath= req.file?.path; // we used file instead of files because we are uploading single file
+    //multer gives us the path of the uploaded file in req.file for single file upload
+    if(!avatarLocalPath){
+        throw new apiError(400,"Avatar image is required");
+    }
+
+    const avatar = await uploadToCloudinary(avatarLocalPath);
+
+    if(!avatar){
+        throw new apiError(500,"Error uploading avatar image");
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user._id,
+        { $set :
+             { 
+                avatar : avatar.secure_url 
+            } 
+        },
+        { new : true } // return the updated document
+    ).select("-password -refreshTokens"); // exclude password and refreshTokens from the response
+
+    return res
+    .status(200)
+    .json(new apiResponse(200, avatar.secure_url, "User avatar updated successfully"));
+
+});
+
+const updateUserCoverImage = asyncHandler (async (req, res, next) => {
+ 
+    const coverImageLocalPath= req.file?.path; // we used file instead of files because we are uploading single file
+    //multer gives us the path of the uploaded file in req.file for single file upload
+    if(!coverImageLocalPath){
+        throw new apiError(400,"Cover image is required");
+    }
+
+    const coverImage = await uploadToCloudinary(coverImageLocalPath);
+
+    if(!coverImage){
+        throw new apiError(500,"Error uploading cover image");
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user._id,
+        { $set :
+             { 
+                coverImage : coverImage.secure_url 
+            } 
+        },
+        { new : true } // return the updated document
+    ).select("-password -refreshTokens"); // exclude password and refreshTokens from the response
+
+    return res
+    .status(200)
+    .json(new apiResponse(200, coverImage.secure_url, "User cover image updated successfully"));
+
+});
+
+export {
+      registerUser, 
+      loginUser,
+      logoutUser ,
+      refreshAuthTokens , 
+      changeCurrentPassword , 
+      getCurrentUserProfile , 
+      updateUserProfile , 
+      updateUserAvatar , 
+      updateUserCoverImage
+    };
 

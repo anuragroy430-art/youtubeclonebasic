@@ -894,13 +894,33 @@ router.route("/refresh-token").post( refreshAuthToken ); // POST request to /use
 it is a secured route cz user is logged in and has refresh token in cookies
 
 
+lets manipulate user model more , we will create more controllers
+like change password , get user profile , update user profile etc
+another controller is changeFileUploads (updateUserAvatarCoverImage) 
+always manipulate files using a seperate controller
+why ? bcz file uploads are complex and have many edge cases
+so create a new controller named updateUserAvatarCoverImage in user.controller.js file
+
+
+
+
+
+
+
 
 NOW WE WILL WRITE SUBSCRITION MODEL 
 subscription model has a channel and its subscribers
 now channel is a user too and subscribers are also users
 so we will create a reference to user model in subscription model
 
- 
+ so create a file subscription.model.js in models folder
+ and write it 
+ complexities we will face :
+ 1. channel has how many subscribers
+ 2. subscribed( not subscribed ) button if logged in 
+ 3. showing profiles of subscribers of a channel
+
+
 
 
 
