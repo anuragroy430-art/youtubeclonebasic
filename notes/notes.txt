@@ -591,6 +591,334 @@ then send response using ApiResponse class
 
 
 
+
+first lets check our register user api in postman
+use post method 
+http://localhost:8000/api/v1/users/register
+then in body select form-data
+then add fields like
+key - username , value - john_doe
+key - email , value - etc 
+we are not using raw json format cz we have file uploads also
+
+some errors are coming like validation failed  bcz we used fullname instead of fullName
+
+check cloudinary and mongo atlab for uploaded images and created user document
+mongo atlas stores data in bson format not json format 
+bson vs json ?
+bson is binary json format
+bson supports more data types than json like date , binary data etc
+
+now we want to unlink files from server after uploading to cloudinary to save space
+so in cloudinary.js file after uploading to cloudinary we will delete the file from server using
+using fs.unlinksync(filePath); // this will delete the file from server
+basically it means after uploading to cloudinary we dont need the file in our server so we will delete it to save space
+
+
+we also check what happens if cover image is not uploaded as it is optional field
+some error is happening like cannot read property path of undefined
+we have already used optional chaining operator ?. but still error is coming
+bcz after that we are not immediately checking if coverImage file is present or not like we did for avatar file
+so we will just use if condition to check if coverImage file is present or not
+let coverImage ;
+if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) 
+
+
+
+now lets study about what what data are sent 
+if we do console.log(req.files) we will get 
+
+  avatar: [
+    {
+      fieldname: 'avatar',
+      originalname: 'profile.jpg',
+      encoding: '7bit',
+      mimetype: 'image/jpeg',
+      destination: 'public/temp/',
+      filename: '1688123456789-123456789-profile.jpg',
+      path: 'public/temp/1688123456789-123456789-profile.jpg',
+      size: 12345
+    }
+  ], and same for cover image 
+
+
+  postman
+NOW WE WILL LEARN POSTMAN
+we can create collections in postman to organize our apis
+inside collection we can create folders to organize apis further
+and inside folders we can create requests 
+next important thing is environment variables in postman
+we can create environment variables in postman to store values like base url , auth tokens , user ids etc
+so create a new environment named local
+then add a new variable named base_url with value http://localhost:8000/api/v1
+then we share this environment from no environment to our collection named meowtube
+ then in requests instead of writing full url we will write {{server}}/users/register 
+
+
+
+ WHATS THE DIFF BETWEEN ACCESS TOKEN AND REFRESH TOKEN ?
+Access Token:
+- Short-lived token (typically expires in minutes to hours).\
+whenever we need to access protected resources which requires authentication we can do that if we have a valid access token.
+- eg only logged in users can upload videos , comment on videos , like videos etc but accesstoken can expire quickly for security reasons suppose 30mins ,so after 30mins user has to login again to get new access token , this is where refresh token comes in picture
+
+refresh Token:
+- Long-lived token (can last days, weeks, or even months). 
+- refresh tokens are there in our database associated with user
+- we validate user through access token only but everytime you dont have to login again and again to get new access token
+if u have refresh token , hit a endpoint /refresh-token with refresh token in body or headers 
+- now if refresh token is valid(match with db) and not expired we will generate a new access token for user and send it in response
+- this way user can stay logged in for longer period without re-entering credentials frequently
+
+
+so using these two tokens 
+we will implement login user controller next
+algo for login user controller
+1. get email or username and password from req.body
+2. validate email/username and password (isempty fields etc)
+3. find user in database by email or username
+4. if user not found send error response
+5. compare password using isPasswordMatch method in user model
+6. if password does not match send error response
+7. generate auth tokens(access and refresh) using generateAuthTokens method in user model
+8. send cookie and then response with user data and tokens
+
+1.
+const {email ,  username , password} = req.body;
+then check if username or email is provided along with password
+then check 
+3. find user in database by email or username
+ if it was just email login we would write 
+ user.findOne ({email}) 
+but as we have both email and username login so we will use $or operator (mongo operator )
+  const user = await User.findOne({ $or: [{ email }, { username }] });
+if we cant find user send error response
+
+5. compare passowrd using ispasswordmatch method in user model
+we have already created isPasswordMatch method in user model
+so we will use it here
+const isMatch = await user.isPasswordMatch(password); we will use user not User cz we have already fetched user from database 
+User is a mongoose model , user is our fetched user document from database
+if password does not match send error response
+
+7. generate auth tokens(access and refresh) 
+
+so we will create a seperate function to generate auth tokens
+there only create a method named generateAuthTokens
+
+const generateAuthTokens = async (userId) =>
+{ try{
+        await User.findById(userId);
+        const accessToken = user.generateAccessToken();
+        const refreshToken = user.generateRefreshToken();
+    }catch(error){
+        throw new apiError(500,"Error generating auth tokens");
+    }
+}
+but we will also store refresh token in database with user
+user.refreshToken = refreshToken;
+
+ await user.save({validateBeforeSave : false}); // disable validation before saving , because we are only updating refresh token
+//when we will save , mongoose will try to validate all fields , but we are only updating refresh token , so other fields may be invalid , so we disable validation before saving
+
+now we have a method to generate auth tokens
+so in login controller we will call this method to generate auth tokens
+
+const {accessToken , refreshToken} = await generateAuthTokens(user._id);
+
+9. send cookie and then response with user data and tokens
+we will send access token in response body and refresh token in  cookie
+
+what is a cookie ?
+a small piece of data stored on client side (browser) by server
+used for session management , authentication , personalization etc
+
+we have to define cookie options
+const cookieOptions = {
+    httpOnly : true, // cookie cannot be accessed by client side scripts
+    secure : true , // cookie will be sent only over https
+    sameSite : "strict", // cookie will be sent only to same site
+    maxAge : 7 * 24 * 60 * 60 * 1000 // cookie will expire in 7 days
+};
+by default cookie can be modified by client side scripts like javascript (frontend)
+so to prevent this we set httpOnly to true so only server can access the cookie
+then we will set cookie in response using res.cookie() method
+res.cookie("refreshToken" , refreshToken , cookieOptions); // set refresh token in cookie
+then we will send response using ApiResponse class
+res.status(200).json(new apiResponse
+
+NOW USER IS LOGGED IN SUCCESSFULLY
+NOW WE WILL WRITE LOGOUT USER CONTROLLER AND THEN SET ROUTES 
+
+how to logout a user ? 
+1.claer cookies from client side
+1. clear refresh token from database
+so in 
+User.findbyid () but how will we get user id here ?
+
+earlier in login we were finding user by email or username from req.body
+but now if we find user by email or username from req.body it means anyone can logout any user by just knowing their email or username
+SOLUTION
+middleware to authenticate user using access token
+we will create our own authentication middleware to authenticate user using access token
+eg we created cookie parser middleware
+so we could use req.cookies to get cookies from request
+res.cookie to set cookies in response
+
+similarly we will create auth.middleware.js file in middlewares folder
+we will create a verifyToken function to verify access token from authorization header
+what is a true login session ?
+when user logs in successfully and gets access token and refresh token
+so we will verify based on access token
+
+//req.cookies to get cookies from browser
+//we use ? optional chaining to avoid errors if cookies is undefined
+//If accessToken is not found in cookies, we check the Authorization header
+//authorization header is used in mobile apps or external clients where cookies might not be available
+// in postman we can set authorization header manually
+//The typical format of the Authorization header is "Bearer <token>" 
+// so we split the string by space and take the second part as the token
+then check if access token is present or not
+if not present send error response
+
+then if we have access token we will verify it using jwt.verify() method and ask what what information we have stored in token while generating it
+(go to usermodel file and check generateAccessToken method , how much data we have stored in token while generating it )
+so we have to decode token to get user id from it
+so we will first
+import jwt from "jsonwebtoken";
+then we will verify token using
+const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+token will be decoded only if u have the secret key used to sign the token
+next we will get user id from decoded token but without some fields like password and refresh token
+const user = await User.findById(decoded.id).select("-password -refreshToken");
+if user not found send error response
+if user found we will attach user to req object
+req.user = user; // now in any route handler we can access logged in user using req.user
+then call next() to pass control to next middleware or route handler
+next();
+now how will we use this middleware ?
+
+we will use this middleware in routes
+we will just call loginUser controller without auth middleware cz user is not logged in yet
+and we will use auth middleware in logout route cz user has to be logged in to logout
+router.route("/logout").post(verifyJWT ,  logoutUser);
+so verifyJWT middleware will run first to verify access token
+if token is valid it will call logoutUser controller
+thats why next() is called in verifyJWT middleware to pass control to next middleware or route handler
+like this we can call as many middlewares as we want in routes
+
+now in logoutUser controller
+we will get user id from req.user object 
+how ? what is req.user ?
+we have attached user to req object in verifyJWT middleware
+so we can access logged in user using req.user
+we will use findbyidAndUpdate method to clear refresh token from database
+if we used findbyid() method we would have to call save() method to save changes to database
+but findbyidAndUpdate method updates the document directly in database
+we will then use mongo operator $set to set refreshToken to null
+new : true // this will return the updated document not the old one in response
+now we will clear cookie from client side 
+so we will need to set cookie options again
+const cookieOptions = {
+    httpOnly : true, // cookie cannot be accessed by client side scripts
+    secure : true , // cookie will be sent
+}
+then we will clear cookie using res.clearCookie() method
+and then send response using ApiResponse class
+
+sidenote : sometimes we write ( req , _ , next ) when we dont need res object in middleware  
+
+now lets do testing of login and logout user apis in postman
+create a new request in postman for login user
+and another request for logout user
+and in body select raw and json format
+then send data like 
+{
+    "username" : "john_doe",
+    "password" : "Password@123"}
+then click send
+we should get response with user data and access token
+
+TOPIC : ACCESS AND REFRESH TOKEN
+the main purpose of using access tokens and refresh tokens is - so that user dont have to give email and password again and again to access
+
+✅ Step 1: User Logs In
+
+User sends email/password to server.
+
+Server validates and returns:
+
+Access Token (expires soon)
+
+Refresh Token (long valid)
+
+📥 Step 2: User Calls APIs
+
+App sends access token in headers (e.g., Authorization: Bearer <token>).
+
+Server checks token → if valid, returns data.
+
+⛔ Step 3: Access Token Expires
+
+App tries API → server says “token expired”.
+
+🔁 Step 4: Refresh Token Used
+
+App sends refresh token to a special API endpoint like /refresh-token.
+
+Server verifies refresh token.
+
+If valid → server returns a new access token.
+
+🚀 Step 5: Continue Using App
+
+User does not need to log in again.
+
+why is this better than just using access token ?
+1. Security - access tokens are short lived so even if they are compromised the damage is limited (If we used only 1 token with long validity, and if someone stole it, they could use your account for a long time.)
+
+to do this we will -
+we will create a new controller named refreshTokenUser in user.controller.js file
+then we will create a new route for this controller in user.routes.js file
+check refreshAuthToken method in user.controller.js file
+1. get refresh token from req.cookies
+2. validate refresh token (isempty etc)
+3. verify refresh token using jwt.verify() method
+4. find user in database by id from decoded token
+5. if user not found or refresh token does not match send error response
+6. generate new access token using generateAccessToken method in user model
+7. send response with new access token
+
+now in the route file user.routes.js
+router.route("/refresh-token").post( refreshAuthToken ); // POST request to /users/refresh-token will be handled by refreshAuthToken controller
+it is a secured route cz user is logged in and has refresh token in cookies
+
+
+
+NOW WE WILL WRITE SUBSCRITION MODEL 
+subscription model has a channel and its subscribers
+now channel is a user too and subscribers are also users
+so we will create a reference to user model in subscription model
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   
 
 
