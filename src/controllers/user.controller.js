@@ -4,6 +4,7 @@ import {User} from "../models/user.model.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { apiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
+import { sub } from "date-fns";
 
 
 const generateAuthTokens = async (userId) => // function to generate access and refresh tokens , what does this method do ? 
@@ -306,6 +307,86 @@ const updateUserCoverImage = asyncHandler (async (req, res, next) => {
 
 });
 
+const getUserChannelProfile = asyncHandler (async (req, res, next) => {
+
+    const { username } = req.params;
+
+    if(!username?.trim()){
+        throw new apiError(400, "Username is required");
+    }
+
+    const channel = await User.aggregate([
+        {
+            $match : {
+                username : username?.toLowerCase()
+            }
+        },
+        { // this matches the id of the user with the channel field in subscriptions collection ( cz to get subscribers of this channel))
+            $lookup : {
+                from : "subscriptions", // collection to join
+                localField: "_id", // field from the input documents
+                foreignField: "channel", // field from the documents of the "from" collection
+                as : "subscribers" // output array field
+            }
+        },
+        { // this matches the id of the user with the subscriber field in subscriptions collection ( cz to get channels to which this user is subscribed))
+            $lookup : {
+                from : "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as : "subscribedTo" // channels to which this user is subscribed
+            }
+        },
+        {
+            $addFields : {
+                subscriberCount : { $size : "$subscribers" }, // size of subscribers array
+                subscribedToCount : { $size : "$subscribedTo" }, // size of subscribedTo array
+
+
+                isSubscribed : {
+                    $cond : {
+                        if : {
+                            $in : [ req.user?._id , "$subscribers.subscriber" ] // check if logged in user id is in subscribers array  and subscriber object 
+                        },
+                        then : true,   
+                        else : false
+                    }       
+            }
+
+                }
+        },
+        {
+            $project : {
+                fullName : 1,
+                username : 1,
+                avatar : 1,
+                coverImage : 1,
+                subscriberCount : 1,
+                subscribedToCount : 1,
+                isSubscribed : 1,
+                
+            }
+        } 
+    
+
+    ]) // aggregation pipeline to get channel profile along with subscriber count and subscription status
+
+    if(!channel?.length === 0){
+        throw new apiError(404, "Channel not found");
+    }
+    return res
+    .status(200)
+    .json(new apiResponse(200, channel[0], "Channel profile fetched successfully"));
+
+
+
+
+
+
+
+
+});
+
 export {
       registerUser, 
       loginUser,
@@ -315,6 +396,7 @@ export {
       getCurrentUserProfile , 
       updateUserProfile , 
       updateUserAvatar , 
-      updateUserCoverImage
+      updateUserCoverImage,
+      getUserChannelProfile
     };
 

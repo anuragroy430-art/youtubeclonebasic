@@ -920,6 +920,128 @@ so we will create a reference to user model in subscription model
  2. subscribed( not subscribed ) button if logged in 
  3. showing profiles of subscribers of a channel
 
+ THEORYYYYYYY
+ UNDERSTANDING THE SUBSCRIPTION SCHEMA 
+
+ why did we create a separate Subscription schema instead of embedding subscribers directly within the User schema?
+1. Scalability: A user can have a large number of subscribers. Embedding all subscribers within the User document can lead to very large documents, which can be inefficient to read and write. A separate Subscription schema allows for better scalability as the number of subscribers grows.
+in simple words we would store all the userids of subscribers in an array in user model
+but if a user has millions of subscribers then the user document will become very large and inefficient to read and write (DSA)
+2. Query Flexibility: With a separate Subscription schema, we can easily query subscriptions independently of users. For example, we can quickly find all subscribers of a particular channel or all channels a user is subscribed to without loading the entire User document.
+
+SEE SUBSCRIPTION MODEL PIC FOR REFF , 
+our subscription model has two fields
+1. channel -  (the channel being subscribed to)
+2. subscribers -  (users who have subscribed to the channel)
+suppose we have channels - yestheory , freecodecamp , travelvlogs and users - a , b , c , d , e
+ now if user a subscribed to yestheory 
+ a document will be created in subscription collection like
+ {
+    channel : yestheory_id,
+    subscribers : a
+ }
+ then if user b also subscribed to yestheory
+ {
+    channel : yestheory_id,
+    subscribers :  b
+ }
+ then if user c subscribed to freecodecamp
+ {
+    channel : freecodecamp_id,
+    subscribers : c
+ }
+  then if user a also subscribed to freecodecamp
+  {
+      channel : freecodecamp_id,
+      subscribers : a
+  }
+  so this way we can have multiple documents for same channel with different subscribers
+  now if we want to find how many subscribers yestheory (a channel) has
+  we will count documents with channel = yestheory_id
+
+  now if we want to find which channels user a has subscribed to
+  we will find documents with subscribers = a
+
+
+MONGODB AGGREGATION pipeline
+WHAT IS AGGREGATION ?
+Aggregation is a way of processing data in MongoDB to perform complex operations like filtering, grouping, sorting, and transforming data.
+it is similar to sql group by clause
+Aggregation is done using aggregation pipeline which is a series of stages that process data step by step.
+each stage takes input from previous stage and produces output for next stage
+eg : suppose we have 100 documents in a collection and due to some condition we want to filter only 10 documents
+so first stage will filter 10 documents from 100 documents
+then second stage will group these 10 documents based on some field
+then third stage will sort these grouped documents based on some field
+then fourth stage will project only required fields from these sorted documents
+finally we will get the desired output
+
+we can write aggregation inside of mongodb atlas using aggregation tab
+[
+  {}, stage 1
+  {}, stage 2
+  {}, stage 3
+]
+to join two collections we use $lookup stage in aggregation pipeline
+$lookup stage performs left outer join to a collection in the same database to filter in documents from the "joined" collection for processing.
+
+LEARN ABOUT MONGODB , SEE OTHER folder
+
+NOW LETS WRITE SUBSCRIPTION CONTROLLERS
+we will create two controllers
+
+
+getUserChannelProfile - to get channel profile along with subscription status and subscriber count
+
+whenever we go to a channel , we visits it url like /channel/:channelId
+so we will get username from req.params
+then we will find channel user in database by username
+
+next we can do user.find({username}) but this will search the db for the user , u will take it  and then based on its id will run aggregation
+so this is a long approach
+so we will use aggregation pipeline with $match stage to find channel user by username and then $lookup stage to join subscription collection to get subscription status and subscriber count
+therefore user.aggregate([ {},{},{} ]) 
+
+so first stage is $match stage to find channel user by username
+{ $match : { username : username } } // username from req.params
+
+after this we are getting channel user document ( a single document as username is unique )
+
+now we will use $lookup stage to join subscription collection to get subscription status and subscriber count
+
+next to see which which channel user is subscribed to
+we will use $lookup stage again to join subscription collection to see if logged in user is subscribed
+
+next we will use addfields stage to add two new fields
+to count subscribers we will use $size operator to count number of documents in subscriptions array and same for subscribedToChannel array
+
+next we will see whether logged in user is subscribed to this channel or not
+
+                isSubscribed : {
+                    $cond : {
+                        if : {
+                            $in : [ req.user?._id , "$subscribers.subscriber" ] // check if logged in user id is in subscribers array  and subscriber object 
+                        },
+                        then : true,   
+                        else : false
+                    }       
+            }
+//this will check if logged in user id is in subscribers array of subscription collection for this channel 
+
+lastly we will project only required fields using $project stage
+$project stage is used to include or exclude fields from the output documents
+if we set a field to 1 it means include that field in output
+if we set a field to 0 it means exclude that field from output
+
+now what data structure does aggregate method return ?
+it returns an array of documents
+so to get single document we will use [0] to get first document from array
+why first document ?
+bcz username is unique so only one document will be returned in array
+
+
+
+ 
 
 
 
