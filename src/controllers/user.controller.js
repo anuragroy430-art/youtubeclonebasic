@@ -387,6 +387,62 @@ const getUserChannelProfile = asyncHandler (async (req, res, next) => {
 
 });
 
+const getWatchHistory = asyncHandler (async (req, res, next) => {
+
+    const user = await User.aggregate([
+        {
+            $match : {
+                // _id : req.user._id  // this wont work as mongoose is not working here in aggregation pipeline, so we need to convert it to ObjectId
+                _id : new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup : {
+                from : "videos", // why videos instead of video model ? cz in aggregation pipeline we have to use collection name
+                localField : "watchedHistory",
+                foreignField : "_id",
+                as : "watchHistoryVideos" ,
+                pipeline : [ // sub pipeline to lookup uploader details
+                    {
+                        $lookup : { // lookup uploader details
+                            from : "users",
+                            localField : "uploadedBy",
+                            foreignField : "_id",
+                            as : "uploaderDetails",
+                            pipeline : [
+                                {
+                                    $project : { // exclude password and refreshTokens from uploader details
+                                        fullName : 1 ,
+                                        username : 1,
+                                        avatar : 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                         $addFields : { // to get single object instead of array , can use $arrayElemAt as well
+                            uploaderDetails : { 
+                                $first : "$uploaderDetails"  // as uploaderDetails is an array with single object
+                                 }
+                         }
+                    }
+                ]
+            }
+        },
+        {
+        }
+    ]);
+
+    return res
+    .status(200)
+    .json(new apiResponse(200, user[0].watchHistoryVideos, "User watch history fetched successfully"))
+
+
+});
+
+   
+
 export {
       registerUser, 
       loginUser,
@@ -397,6 +453,7 @@ export {
       updateUserProfile , 
       updateUserAvatar , 
       updateUserCoverImage,
-      getUserChannelProfile
+      getUserChannelProfile,
+      getWatchHistory
     };
 

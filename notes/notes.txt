@@ -1040,6 +1040,23 @@ why first document ?
 bcz username is unique so only one document will be returned in array
 
 
+NEXT WE WRITE ABOUT WATCH HISTORY CONTROLLERS
+
+watchhistory is a array where all the ids of watched videos are stored , so we will get a lot of documents 
+we will do $lookup from watch history collection to video collection to get video details
+but we also need owner details of video
+so we will do another $lookup from user collection to get owner details of video
+so we will do nested lookups
+
+SIDENOTE : req.user?._id gives us a string not an object id
+mongoose automatically converts string to object id when querying the database
+
+so for match stage 
+{ $match : { user : mongoose.Types.ObjectId(req.user?._id) } } // convert string to object id using mongoose.Types.ObjectId() method
+
+u have seen while lookup we used subscriptions / videos / users instead of Subscription / Video / User as these are the collection names in mongodb atlas ( it makes first letter small and adds s at the end for plural form)
+
+
 
  
 
