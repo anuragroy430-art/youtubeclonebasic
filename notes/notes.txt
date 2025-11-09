@@ -1058,6 +1058,7 @@ u have seen while lookup we used subscriptions / videos / users instead of Subsc
 
 now lets write routes for all the controllers we have written in user.controller.js file
 
+next we will write models for comments , like , playlist etc
 
 
 
