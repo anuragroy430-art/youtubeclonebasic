@@ -5,6 +5,7 @@ import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { apiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
 import { sub } from "date-fns";
+import mongoose from "mongoose";
 
 
 const generateAuthTokens = async (userId) => // function to generate access and refresh tokens , what does this method do ? 
@@ -430,8 +431,7 @@ const getWatchHistory = asyncHandler (async (req, res, next) => {
                 ]
             }
         },
-        {
-        }
+        
     ]);
 
     return res

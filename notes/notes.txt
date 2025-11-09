@@ -1054,7 +1054,10 @@ mongoose automatically converts string to object id when querying the database
 so for match stage 
 { $match : { user : mongoose.Types.ObjectId(req.user?._id) } } // convert string to object id using mongoose.Types.ObjectId() method
 
-u have seen while lookup we used subscriptions / videos / users instead of Subscription / Video / User as these are the collection names in mongodb atlas ( it makes first letter small and adds s at the end for plural form)
+u have seen while lookup we used subscriptions / videos / users instead of Subscription / Video / User as these are the collection names in mongodb atlas ( it makes first letter small and adds s at the end for plural form
+
+now lets write routes for all the controllers we have written in user.controller.js file
+
 
 
 
