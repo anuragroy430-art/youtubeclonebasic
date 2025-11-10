@@ -9,22 +9,43 @@ import {uploadToCloudinary, deleteFromCloudinary, extractPublicId} from "../util
 
 // this controller handles fetching all videos with pagination, search, sorting, and filtering
 const getAllVideos = asyncHandler(async (req, res) => {
-    // extract query parameters from the URL (e.g., /videos?page=1&limit=10&query=react&sortBy=views&sortType=desc&userId=123)
-    // set default values if parameters are not provided
+
+
+
+    /*This line pulls parameters from the URL query string, for example /videos?page=2&limit=5.
+If the user didn’t send page or limit, defaults are used: page defaults to 1, limit to 10.
+query is a search term (optional).
+sortBy says which field to sort by (default createdAt).
+sortType decides order: "asc" (ascending) or "desc" (descending). Default is "desc".
+userId optionally filters videos uploaded by that user.
+All values are strings by default when they come from req.query.*/
     const { page = 1, limit = 10, query, sortBy = "createdAt", sortType = "desc", userId } = req.query;
     
+
+    /*We prepare a MongoDB filter called matchStage that will be used to only include published videos.
+    In Mongo terms, this becomes { $match: { ispublished: true } } later in the pipeline.*/
     // build match stage for aggregation - this will filter which videos to show
     // $match in MongoDB aggregation is like WHERE clause in SQL
     const matchStage = { ispublished: true }; // only show published videos (not drafts/unpublished)
     
+
+    /*If the request included userId and it is a valid MongoDB ObjectId string, then we will filter by that uploader.
+    isValidObjectId is usually mongoose.Types.ObjectId.isValid(...) — it prevents invalid IDs that could cause errors.*/
     // if userId is provided in query params, filter videos by that specific uploader
     // example: /videos?userId=507f1f77bcf86cd799439011 will show only that user's videos
     if (userId && isValidObjectId(userId)) {
         // convert string userId to MongoDB ObjectId for comparison
         // new mongoose.Types.ObjectId() creates a proper ObjectId from string
         matchStage.uploadedBy = new mongoose.Types.ObjectId(userId);
-    }
+    }//We add uploadedBy to the filter, converting the string userId into a Mongo ObjectId type.
+    //After this, matchStage might look like { ispublished: true, uploadedBy: ObjectId("...") }.
     
+
+
+    /*If the client sent a search term (query), we add a condition that either title or description should match that text.
+    $regex: query is a text pattern match; $options: "i" makes it case-insensitive.
+    Example: query = "funny" will match titles or descriptions that contain "funny" (case-insensitive).
+    Short caveat: regex searches can be slow on large collections unless you use text indexes or other optimizations.*/
     // if search query is provided, search in both title and description fields
     // example: /videos?query=javascript will find videos with "javascript" in title OR description
     if (query) {
@@ -36,6 +57,8 @@ const getAllVideos = asyncHandler(async (req, res) => {
             { description: { $regex: query, $options: "i" } }
         ];
     }
+
+    //Create an empty object where we’ll store sorting instructions for MongoDB.
     
     // build sort stage - determines the order of results
     // create empty object and dynamically set the sort field
@@ -44,6 +67,9 @@ const getAllVideos = asyncHandler(async (req, res) => {
     // sortType: "asc" = ascending (1, 2, 3 or A, B, C), "desc" = descending (3, 2, 1 or Z, Y, X)
     // 1 = ascending, -1 = descending in MongoDB
     sortStage[sortBy] = sortType === "asc" ? 1 : -1;
+    /*Dynamically set the sort field and direction.
+    If sortBy is "views" and sortType is "asc", this makes { views: 1 }.
+    1 = ascending, -1 = descending.*/
     
     // aggregation pipeline - series of stages that process data step by step
     // Video.aggregate() creates an aggregation query (doesn't execute yet, just builds it)
@@ -315,7 +341,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
     return res.status(200).json(
         new apiResponse(200, null, "Video deleted successfully")
     );
-})
+}) 
 
 
 //this controller handles toggling the publish status of a video (publish/unpublish)
