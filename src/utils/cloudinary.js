@@ -29,7 +29,56 @@ const uploadToCloudinary = async (filePath) => {
 }
 };
 
-export {uploadToCloudinary};
+// delete file from cloudinary
+const deleteFromCloudinary = async (publicId, resourceType = "image") => {
+    try {
+        if (!publicId) return null;
+        
+        // delete file from cloudinary
+        const result = await cloudinary.uploader.destroy(publicId, {
+            resource_type: resourceType // "image" or "video"
+        });
+        
+        console.log("File deleted from cloudinary successfully", result);
+        return result;
+        
+    } catch (error) {
+        console.error("Error deleting file from cloudinary", error);
+        return null;
+    }
+};
+
+// extract public_id from cloudinary URL
+const extractPublicId = (url) => {
+    try {
+        if (!url) return null;
+        
+        // Example URL: https://res.cloudinary.com/demo/image/upload/v1234567890/sample.jpg
+        // Extract: sample (public_id)
+        
+        const parts = url.split('/');
+        const uploadIndex = parts.indexOf('upload');
+        
+        if (uploadIndex === -1) return null;
+        
+        // Get everything after 'upload' and remove version (v1234567890)
+        const pathAfterUpload = parts.slice(uploadIndex + 1).join('/');
+        
+        // Remove version prefix if exists (v1234567890/)
+        const withoutVersion = pathAfterUpload.replace(/^v\d+\//, '');
+        
+        // Remove file extension
+        const publicId = withoutVersion.substring(0, withoutVersion.lastIndexOf('.')) || withoutVersion;
+        
+        return publicId;
+        
+    } catch (error) {
+        console.error("Error extracting public_id from URL", error);
+        return null;
+    }
+};
+
+export { uploadToCloudinary, deleteFromCloudinary, extractPublicId };
 
 
 
