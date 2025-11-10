@@ -17,9 +17,11 @@ app.use(cookieParser()); // Middleware to parse cookies from incoming requests
 
 //routes import 
 import userRoutes from './routes/user.routes.js';
+import videoRoutes from './routes/video.routes.js';
 //route declaration
 app.use('/api/v1/users', userRoutes); // when user hits /users route , userRoutes will handle it , this is middleware routing
 //this gets prefixed to all routes inside userRoutes
+app.use('/api/v1/videos', videoRoutes); // when user hits /videos route , videoRoutes will handle it
 
 
 
